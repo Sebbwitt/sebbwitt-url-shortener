@@ -1,3 +1,4 @@
 node_modules
 .env
 database/urls.db
+client/node_modules
