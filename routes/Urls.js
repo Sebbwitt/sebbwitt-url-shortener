@@ -2,17 +2,16 @@
 const express = require("express");
 const router = express.Router();
 
+// Require: Validator
+const Validator = require("../common/Validator");
+
 // Initialize: Create the Url Table 
 // Will ignore it if it exists
 const dbConnection = require("../db")();
 var db = dbConnection.Get();
-
 db.run("CREATE TABLE IF NOT EXISTS urlTable(mini type UNIQUE, destination)");
 
 router.get("/", (req, res) => {
-    var asdasd = [];
-    var count = 0;
-    
     db.serialize( () => {
         db.all(`SELECT mini, destination FROM urlTable`, (err, allRows) => {
             if (err) {
@@ -30,51 +29,107 @@ router.get("/", (req, res) => {
     });
 });
 
-router.get("/insert", (req, res) => {
-    
-    let testData = [
-        ["test", "https://www.google.com"],
-        ["test2", "https://www.yahoo.com"],
-        ["test3", "https://www.facebook.com"],
-        ["a", "https://stackoverflow.com/questions/29555290/what-is-the-difference-between-res-end-and-res-send"]
-    ]
+router.post("/insert", (req, res) => {
+    const data = req.body;
+
+    //Check if URL is a valid URL and deny the creation of "mini" : "mini" path
+    if (!Validator.isValidUrl(data.destination) || data.mini === "mini") {
+        res.status(400).json({
+            message: "Invalid inputs - Invalid URL or restricted mini address",
+            success: false
+        });
+        return;
+    }
+
+    const newEntry = [data.mini, data.destination];
     let insertionQuery = `INSERT INTO urlTable(mini, destination) VALUES(?,?)`;
     let statement = db.prepare(insertionQuery);
 
-    for (let i = 0; i < testData.length; i++) {
-        statement.run(testData[i], err => {
-            if (err) console.log(err);
-            console.log("inserted");
-        });
-    }
-
-    res.json({message: "ok"});
+    statement.run(newEntry, err => {
+        if (err) {
+            res.status(400).json({
+                message: err.message,
+                success: false
+            });
+            return;
+        } else {
+            res.status(400).json({
+                message: "Successfully added to database",
+                success: true,
+                data: newEntry
+            });
+            return;
+        }
+    });
 });
 
-router.get("/each/:id", (req, res) => {
+router.get("/url/:id", (req, res) => {
+    const id = req.params.id;
+
     db.serialize(() => {
-        db.get(`SELECT mini, destination from urlTable WHERE mini="${req.params.id}";`, (err, row) => {
+        db.get(`SELECT mini, destination from urlTable WHERE mini=?`, id, (err, row) => {
             if (err) {
                 res.status(400).json({
-                    message: err.message
+                    message: err.message,
+                    data: null
                 });
                 return;
             } else if (!row) {
                 res.status(400).json({
-                    message: "None found"
+                    message: "None found",
+                    data: null
                 });
                 return;
             } else {
-                res.status(200).redirect(row.destination);
+                res.status(200).json({
+                    message: "Found",
+                    data: row
+                });
                 return;
             }
         });
     });
 });
 
-router.get("/drop", (req, res) => {
-    db.run("DROP TABLE IF EXISTS urlTable");
-    res.json({message: "ok"});
-})
+router.delete("/url/:id", (req, res) => {
+    
+    const id = req.params.id;
+
+    // Check if this entry exist
+    db.get(`SELECT mini FROM urlTable WHERE mini=?`, id, (err, row) => {
+
+        if (err) {
+            res.status(400).json({
+                message: err.message,
+                success: false
+            });
+            return;
+        } else if (!row) {
+            console.log(row);
+            res.status(400).json({
+                message: "Not found",
+                success: false
+            });
+            return;
+        } else {
+            // Entry does exist
+            db.run(`DELETE FROM urlTable WHERE mini=?`, id, err => {
+                if (err) {
+                    res.status(400).json({
+                        message: err.message,
+                        success: false
+                    });
+                    return;
+                } else {
+                    res.status(200).json({
+                        message: `Successfully delete ${id}`,
+                        success: true
+                    });
+                    return;
+                }
+            });
+        }
+    });
+});
 
 module.exports = router;

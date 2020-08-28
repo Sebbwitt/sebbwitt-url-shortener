@@ -28,5 +28,14 @@ const urlRouter = require("./routes/Urls");
 app.use("/mini", urlRouter);
 
 
+// Default static - Server Index.html from React build
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "/client/build"));
+});
+
+// Catch all undeclared routes
+app.all("*", (req, res) => {
+    res.redirect("/");
+});
 
 app.listen(PORT, () => console.log(`Server started on Port: ${PORT}`));
