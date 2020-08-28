@@ -18,6 +18,7 @@ const cors = require("cors");
 
 // Express App setup
 app.use(cors());
+app.set('json spaces', 4)
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "/client/build")));
 
@@ -25,7 +26,6 @@ app.use(express.static(path.join(__dirname, "/client/build")));
 // URL - mini path
 const urlRouter = require("./routes/Urls");
 app.use("/mini", urlRouter);
-
 
 
 

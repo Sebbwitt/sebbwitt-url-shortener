@@ -14,7 +14,6 @@ var DBConnection = () => {
         db = new sqlite3.Database("./database/urls.db", err => {
             if (err) return console.log(`DATABASE ERROR: ${err.message}`);
             console.log(`DATABASE CONNECTED: ${dbNamePath}`);
-            if (db !== null) db.run("CREATE TABLE IF NOT EXISTS urlTable(UNIQUE(mini), destination)", () => console.log("Created new DB"));
         });
     }
 

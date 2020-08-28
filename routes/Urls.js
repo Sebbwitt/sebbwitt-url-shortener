@@ -8,13 +8,26 @@ const dbConnection = require("../db")();
 var db = dbConnection.Get();
 
 db.run("CREATE TABLE IF NOT EXISTS urlTable(mini type UNIQUE, destination)");
+
 router.get("/", (req, res) => {
-    res.json({
-        message: "ok"
-    })
-
+    var asdasd = [];
+    var count = 0;
     
-
+    db.serialize( () => {
+        db.all(`SELECT mini, destination FROM urlTable`, (err, allRows) => {
+            if (err) {
+                res.status(500).json({
+                    message: err.message
+                });
+                return;
+            } else {
+                res.status(200).json({
+                    allUrls: allRows
+                });
+                return;
+            }
+        });
+    });
 });
 
 router.get("/insert", (req, res) => {
@@ -22,7 +35,8 @@ router.get("/insert", (req, res) => {
     let testData = [
         ["test", "https://www.google.com"],
         ["test2", "https://www.yahoo.com"],
-        ["test2", "https://www.facebook.com"]
+        ["test3", "https://www.facebook.com"],
+        ["a", "https://stackoverflow.com/questions/29555290/what-is-the-difference-between-res-end-and-res-send"]
     ]
     let insertionQuery = `INSERT INTO urlTable(mini, destination) VALUES(?,?)`;
     let statement = db.prepare(insertionQuery);
@@ -39,13 +53,23 @@ router.get("/insert", (req, res) => {
 
 router.get("/each/:id", (req, res) => {
     db.serialize(() => {
-        db.each(`SELECT mini, destination from urlTable`, (err, row) => {
-            if (err) console.log(err.message);
-            console.log(row.mini + "\t" + row.destination);
-            console.log(row);
-        })
+        db.get(`SELECT mini, destination from urlTable WHERE mini="${req.params.id}";`, (err, row) => {
+            if (err) {
+                res.status(400).json({
+                    message: err.message
+                });
+                return;
+            } else if (!row) {
+                res.status(400).json({
+                    message: "None found"
+                });
+                return;
+            } else {
+                res.status(200).redirect(row.destination);
+                return;
+            }
+        });
     });
-    res.json({message: "ok"});
 });
 
 router.get("/drop", (req, res) => {
